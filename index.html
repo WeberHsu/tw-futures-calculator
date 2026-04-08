@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台指期貨計算器</title>
+<style>
+  :root {
+    --bg: #0f1923;
+    --card: #1a2634;
+    --border: #2a3a4a;
+    --accent: #4fc3f7;
+    --green: #66bb6a;
+    --red: #ef5350;
+    --text: #e0e0e0;
+    --dim: #8899aa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--dim);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title .toggle-btn {
+    font-size: 0.75rem;
+    color: var(--dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-weight: 400;
+  }
+  .card-title .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .form-group {
+    flex: 1;
+    min-width: 140px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group select option { background: var(--bg); }
+  .form-group input.margin-input {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+  }
+
+  .positions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 0.9rem;
+  }
+  .positions-table th {
+    text-align: left;
+    color: var(--dim);
+    font-weight: 500;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .positions-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .positions-table .del-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .positions-table .del-btn:hover { background: rgba(239,83,80,0.15); }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-add { background: var(--accent); color: var(--bg); }
+  .btn-long { background: var(--green); color: #fff; }
+  .btn-short { background: var(--red); color: #fff; }
+
+  .direction-btns {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .direction-btns .btn {
+    flex: 1;
+    padding: 8px;
+    opacity: 0.4;
+    font-size: 0.85rem;
+  }
+  .direction-btns .btn.active { opacity: 1; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .result-item {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .result-item .label {
+    font-size: 0.75rem;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .result-item .value {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+  .neutral { color: var(--accent); }
+  .warning { color: #ffa726; }
+
+  .sim-row {
+    display: flex;
+    gap: 12px;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .sim-result {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .sim-result .result-item { flex: 1; min-width: 150px; }
+
+  .pos-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .pos-tag.long { background: rgba(102,187,106,0.2); color: var(--green); }
+  .pos-tag.short { background: rgba(239,83,80,0.2); color: var(--red); }
+
+  /* Margin settings table */
+  .margin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .margin-table th {
+    text-align: left;
+    color: var(--dim);
+    font-weight: 500;
+    padding: 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+  .margin-table td {
+    padding: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .margin-table input {
+    width: 100px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.85rem;
+    outline: none;
+  }
+  .margin-table input:focus { border-color: var(--accent); }
+  .taifex-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .taifex-link:hover { text-decoration: underline; }
+  .last-updated {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  .collapsible { display: none; }
+  .collapsible.open { display: block; }
+
+  .save-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--green);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .save-toast.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .form-group { min-width: 100%; }
+    .results-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>台指期貨計算器</h1>
+  <p class="subtitle">槓桿 / 爆倉價 / 手續費 / 損益試算</p>
+
+  <!-- 帳戶總覽 -->
+  <div class="card">
+    <div class="card-title">帳戶總覽</div>
+    <div class="results-grid">
+      <div class="result-item">
+        <div class="label">總保證金需求</div>
+        <div class="value neutral" id="totalMargin">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">可用餘額</div>
+        <div class="value" id="freeMargin">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">總合約價值</div>
+        <div class="value neutral" id="totalNotional">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">槓桿倍數</div>
+        <div class="value warning" id="leverage">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">單日手續費+稅（來回）</div>
+        <div class="value" id="dailyCost">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">爆倉價（維持保證金）</div>
+        <div class="value negative" id="liquidationPrice">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 目前持倉 -->
+  <div class="card">
+    <div class="card-title">目前持倉</div>
+    <table class="positions-table">
+      <thead>
+        <tr>
+          <th>方向</th>
+          <th>商品</th>
+          <th>價位</th>
+          <th>口數</th>
+          <th>保證金</th>
+          <th>合約價值</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="positionsBody">
+        <tr><td colspan="7" style="text-align:center;color:var(--dim);padding:20px;">尚無部位，請在上方新增</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 新增部位 -->
+  <div class="card">
+    <div class="card-title">新增部位</div>
+    <div class="direction-btns">
+      <button class="btn btn-long active" onclick="setDirection('long')">做多 Long</button>
+      <button class="btn btn-short" onclick="setDirection('short')">做空 Short</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>商品</label>
+        <select id="newProduct">
+          <option value="MXF">微台 MXF</option>
+          <option value="MTX">小台 MTX</option>
+          <option value="TX">大台 TX</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>買入價位</label>
+        <input type="number" id="newPrice" placeholder="例：20000">
+      </div>
+      <div class="form-group">
+        <label>口數</label>
+        <input type="number" id="newContracts" placeholder="口數" value="1" min="1">
+      </div>
+      <div class="form-group" style="flex:0 0 auto;">
+        <label>&nbsp;</label>
+        <button class="btn btn-add" onclick="addPosition()">+ 新增</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 帳戶資金 -->
+  <div class="card">
+    <div class="card-title">帳戶資金</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>總資金 (NT$)</label>
+        <input type="number" id="capital" placeholder="例：500000" value="500000">
+      </div>
+      <div class="form-group">
+        <label>手續費/口 (NT$)</label>
+        <input type="number" id="commissionPerContract" placeholder="單邊" value="20">
+      </div>
+      <div class="form-group">
+        <label>交易稅率</label>
+        <select id="taxRate">
+          <option value="0.00002">十萬分之二 (期貨)</option>
+          <option value="0.00004">十萬分之四</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 損益試算 -->
+  <div class="card">
+    <div class="card-title">損益試算</div>
+    <div class="sim-row">
+      <div class="form-group">
+        <label>假設大盤指數</label>
+        <input type="number" id="simPrice" placeholder="例：21000">
+      </div>
+      <div class="form-group" style="flex:0 0 auto;">
+        <label>&nbsp;</label>
+        <button class="btn btn-add" onclick="simulate()">計算</button>
+      </div>
+    </div>
+    <div class="sim-result" id="simResult" style="display:none;">
+      <div class="result-item">
+        <div class="label">預估損益</div>
+        <div class="value" id="simPnl">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">報酬率（對資金）</div>
+        <div class="value" id="simReturn">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">扣除手續費後淨損益</div>
+        <div class="value" id="simNetPnl">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">結算後帳戶餘額</div>
+        <div class="value" id="simBalance">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 保證金設定 -->
+  <div class="card">
+    <div class="card-title">
+      <span>保證金設定</span>
+      <button class="toggle-btn" onclick="toggleMarginSettings()">展開 / 收合</button>
+    </div>
+    <div class="collapsible" id="marginSettings">
+      <table class="margin-table">
+        <thead>
+          <tr>
+            <th>商品</th>
+            <th>每點價值</th>
+            <th>原始保證金</th>
+            <th>維持保證金</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>大台 TX</td>
+            <td>NT$200</td>
+            <td><input type="number" id="margin_TX" value="184000" onchange="updateMargin('TX')"></td>
+            <td><input type="number" id="maintMargin_TX" value="141000" onchange="updateMargin('TX')"></td>
+          </tr>
+          <tr>
+            <td>小台 MTX</td>
+            <td>NT$50</td>
+            <td><input type="number" id="margin_MTX" value="46000" onchange="updateMargin('MTX')"></td>
+            <td><input type="number" id="maintMargin_MTX" value="35250" onchange="updateMargin('MTX')"></td>
+          </tr>
+          <tr>
+            <td>微台 MXF</td>
+            <td>NT$5</td>
+            <td><input type="number" id="margin_MXF" value="4600" onchange="updateMargin('MXF')"></td>
+            <td><input type="number" id="maintMargin_MXF" value="3525" onchange="updateMargin('MXF')"></td>
+          </tr>
+        </tbody>
+      </table>
+      <a class="taifex-link" href="https://www.taifex.com.tw/cht/5/margingLevelCurrent" target="_blank" rel="noopener">
+        查看期交所最新保證金 →
+      </a>
+      <div class="last-updated" id="marginLastUpdated"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="save-toast" id="saveToast">已儲存</div>
+
+<script>
+// ── Storage key ──
+const STORAGE_KEY = 'futures_calc_v1';
+
+// ── Default product specs ──
+const DEFAULT_PRODUCTS = {
+  TX:  { name: '大台 TX',  multiplier: 200, margin: 184000, maintMargin: 141000 },
+  MTX: { name: '小台 MTX', multiplier: 50,  margin: 46000,  maintMargin: 35250 },
+  MXF: { name: '微台 MXF', multiplier: 5,   margin: 4600,   maintMargin: 3525 },
+};
+
+let PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+let positions = [];
+let currentDirection = 'long';
+
+// ── LocalStorage ──
+function saveState() {
+  const state = {
+    capital: document.getElementById('capital').value,
+    commissionPerContract: document.getElementById('commissionPerContract').value,
+    taxRate: document.getElementById('taxRate').value,
+    simPrice: document.getElementById('simPrice').value,
+    positions,
+    products: PRODUCTS,
+    marginLastUpdated: document.getElementById('marginLastUpdated').textContent,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  showToast();
+}
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const state = JSON.parse(raw);
+    if (state.capital) document.getElementById('capital').value = state.capital;
+    if (state.commissionPerContract) document.getElementById('commissionPerContract').value = state.commissionPerContract;
+    if (state.taxRate) document.getElementById('taxRate').value = state.taxRate;
+    if (state.simPrice) document.getElementById('simPrice').value = state.simPrice;
+    if (state.positions) positions = state.positions;
+    if (state.products) {
+      PRODUCTS = state.products;
+      // Restore margin inputs
+      ['TX', 'MTX', 'MXF'].forEach(k => {
+        document.getElementById('margin_' + k).value = PRODUCTS[k].margin;
+        document.getElementById('maintMargin_' + k).value = PRODUCTS[k].maintMargin;
+      });
+    }
+    if (state.marginLastUpdated) {
+      document.getElementById('marginLastUpdated').textContent = state.marginLastUpdated;
+    }
+  } catch (e) {
+    console.warn('Failed to load saved state', e);
+  }
+}
+
+function showToast() {
+  const t = document.getElementById('saveToast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1200);
+}
+
+// ── Margin settings ──
+function toggleMarginSettings() {
+  document.getElementById('marginSettings').classList.toggle('open');
+}
+
+function updateMargin(product) {
+  const margin = parseInt(document.getElementById('margin_' + product).value) || 0;
+  const maintMargin = parseInt(document.getElementById('maintMargin_' + product).value) || 0;
+  PRODUCTS[product].margin = margin;
+  PRODUCTS[product].maintMargin = maintMargin;
+  const now = new Date().toLocaleString('zh-TW');
+  document.getElementById('marginLastUpdated').textContent = '上次更新：' + now;
+  recalculate();
+  saveState();
+}
+
+// ── Direction ──
+function setDirection(dir) {
+  currentDirection = dir;
+  document.querySelectorAll('.direction-btns .btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.btn-${dir}`).classList.add('active');
+}
+
+// ── Positions ──
+function addPosition() {
+  const product = document.getElementById('newProduct').value;
+  const price = parseFloat(document.getElementById('newPrice').value);
+  const contracts = parseInt(document.getElementById('newContracts').value);
+  if (!price || !contracts || contracts < 1) { alert('請填入有效的價位和口數'); return; }
+
+  positions.push({ id: Date.now(), direction: currentDirection, product, price, contracts });
+  renderPositions();
+  recalculate();
+  saveState();
+}
+
+function removePosition(id) {
+  positions = positions.filter(p => p.id !== id);
+  renderPositions();
+  recalculate();
+  saveState();
+}
+
+function fmt(n) {
+  return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+}
+
+function renderPositions() {
+  const tbody = document.getElementById('positionsBody');
+  if (positions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:20px;">尚無部位，請在上方新增</td></tr>';
+    return;
+  }
+  tbody.innerHTML = positions.map(p => {
+    const spec = PRODUCTS[p.product];
+    const margin = spec.margin * p.contracts;
+    const notional = p.price * spec.multiplier * p.contracts;
+    const dirClass = p.direction === 'long' ? 'long' : 'short';
+    const dirText = p.direction === 'long' ? '多' : '空';
+    return `<tr>
+      <td><span class="pos-tag ${dirClass}">${dirText}</span></td>
+      <td>${spec.name}</td>
+      <td>${fmt(p.price)}</td>
+      <td>${p.contracts}</td>
+      <td>$${fmt(margin)}</td>
+      <td>$${fmt(notional)}</td>
+      <td><button class="del-btn" onclick="removePosition(${p.id})">&#10005;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Calculations ──
+function recalculate() {
+  const capital = parseFloat(document.getElementById('capital').value) || 0;
+  const commPerContract = parseFloat(document.getElementById('commissionPerContract').value) || 0;
+  const taxRate = parseFloat(document.getElementById('taxRate').value);
+
+  let totalMargin = 0, totalMaintMargin = 0, totalNotional = 0, totalContracts = 0;
+
+  positions.forEach(p => {
+    const spec = PRODUCTS[p.product];
+    totalMargin += spec.margin * p.contracts;
+    totalMaintMargin += spec.maintMargin * p.contracts;
+    totalNotional += p.price * spec.multiplier * p.contracts;
+    totalContracts += p.contracts;
+  });
+
+  const freeMargin = capital - totalMargin;
+  const leverage = capital > 0 && totalNotional > 0 ? totalNotional / capital : 0;
+
+  const dailyComm = commPerContract * totalContracts * 2;
+  const dailyTax = totalNotional * taxRate * 2;
+  const dailyCost = dailyComm + dailyTax;
+
+  let liquidationPrice = '-';
+  if (positions.length > 0) {
+    const maxLoss = capital - totalMaintMargin;
+    if (maxLoss > 0) {
+      let weightedEntry = 0, totalMultContracts = 0;
+      positions.forEach(p => {
+        const spec = PRODUCTS[p.product];
+        const mc = spec.multiplier * p.contracts;
+        const dir = p.direction === 'long' ? 1 : -1;
+        weightedEntry += p.price * mc * dir;
+        totalMultContracts += mc * dir;
+      });
+      if (totalMultContracts !== 0) {
+        const liqPrice = (weightedEntry - maxLoss) / totalMultContracts;
+        liquidationPrice = liqPrice > 0 ? fmt(Math.round(liqPrice)) : '不適用';
+      }
+    } else {
+      liquidationPrice = '資金不足';
+    }
+  }
+
+  document.getElementById('totalMargin').textContent = totalMargin > 0 ? `$${fmt(totalMargin)}` : '-';
+  const freeEl = document.getElementById('freeMargin');
+  freeEl.textContent = positions.length > 0 ? `$${fmt(freeMargin)}` : '-';
+  freeEl.className = `value ${freeMargin >= 0 ? 'positive' : 'negative'}`;
+  document.getElementById('totalNotional').textContent = totalNotional > 0 ? `$${fmt(totalNotional)}` : '-';
+  document.getElementById('leverage').textContent = leverage > 0 ? `${leverage.toFixed(1)}x` : '-';
+  document.getElementById('dailyCost').textContent = dailyCost > 0 ? `$${fmt(Math.round(dailyCost))}` : '-';
+  document.getElementById('liquidationPrice').textContent = liquidationPrice;
+}
+
+function simulate() {
+  const simPrice = parseFloat(document.getElementById('simPrice').value);
+  if (!simPrice) { alert('請輸入假設指數'); return; }
+  if (positions.length === 0) { alert('請先新增部位'); return; }
+
+  const capital = parseFloat(document.getElementById('capital').value) || 0;
+  const commPerContract = parseFloat(document.getElementById('commissionPerContract').value) || 0;
+  const taxRate = parseFloat(document.getElementById('taxRate').value);
+
+  let totalPnl = 0, totalContracts = 0, closeNotional = 0, openNotional = 0;
+
+  positions.forEach(p => {
+    const spec = PRODUCTS[p.product];
+    const dir = p.direction === 'long' ? 1 : -1;
+    totalPnl += (simPrice - p.price) * spec.multiplier * p.contracts * dir;
+    totalContracts += p.contracts;
+    openNotional += p.price * spec.multiplier * p.contracts;
+    closeNotional += simPrice * spec.multiplier * p.contracts;
+  });
+
+  const totalComm = commPerContract * totalContracts * 2;
+  const totalTax = (openNotional + closeNotional) * taxRate;
+  const totalCost = totalComm + totalTax;
+  const netPnl = totalPnl - totalCost;
+  const returnRate = capital > 0 ? (netPnl / capital) * 100 : 0;
+  const balance = capital + netPnl;
+
+  document.getElementById('simResult').style.display = 'flex';
+
+  const pnlEl = document.getElementById('simPnl');
+  pnlEl.textContent = `$${fmt(Math.round(totalPnl))}`;
+  pnlEl.className = `value ${totalPnl >= 0 ? 'positive' : 'negative'}`;
+
+  const retEl = document.getElementById('simReturn');
+  retEl.textContent = `${returnRate >= 0 ? '+' : ''}${returnRate.toFixed(2)}%`;
+  retEl.className = `value ${returnRate >= 0 ? 'positive' : 'negative'}`;
+
+  const netEl = document.getElementById('simNetPnl');
+  netEl.textContent = `$${fmt(Math.round(netPnl))}`;
+  netEl.className = `value ${netPnl >= 0 ? 'positive' : 'negative'}`;
+
+  const balEl = document.getElementById('simBalance');
+  balEl.textContent = `$${fmt(Math.round(balance))}`;
+  balEl.className = `value ${balance >= capital ? 'positive' : 'negative'}`;
+
+  saveState();
+}
+
+// ── Auto-save on input changes ──
+let saveTimer;
+function debounceSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 500);
+}
+
+document.querySelectorAll('#capital, #commissionPerContract, #taxRate, #simPrice').forEach(el => {
+  el.addEventListener('input', () => { recalculate(); debounceSave(); });
+});
+
+// ── Init ──
+loadState();
+renderPositions();
+recalculate();
+</script>
+</body>
+</html>
