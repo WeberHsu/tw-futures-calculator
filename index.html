@@ -308,7 +308,11 @@
         <div class="value" id="dailyCost">-</div>
       </div>
       <div class="result-item">
-        <div class="label">爆倉價（維持保證金）</div>
+        <div class="label">追繳價（權益 &lt; 維持保證金 70%）</div>
+        <div class="value warning" id="marginCallPrice">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">斷頭價（權益 &lt; 原始保證金 30%）</div>
         <div class="value negative" id="liquidationPrice">-</div>
       </div>
     </div>
@@ -625,24 +629,37 @@ function recalculate() {
   const dailyTax = totalNotional * taxRate * 2;
   const dailyCost = dailyComm + dailyTax;
 
+  let marginCallPrice = '-';
   let liquidationPrice = '-';
   if (positions.length > 0) {
-    const maxLoss = capital - totalMaintMargin;
-    if (maxLoss > 0) {
-      let weightedEntry = 0, totalMultContracts = 0;
-      positions.forEach(p => {
-        const spec = PRODUCTS[p.product];
-        const mc = spec.multiplier * p.contracts;
-        const dir = p.direction === 'long' ? 1 : -1;
-        weightedEntry += p.price * mc * dir;
-        totalMultContracts += mc * dir;
-      });
-      if (totalMultContracts !== 0) {
-        const liqPrice = (weightedEntry - maxLoss) / totalMultContracts;
-        liquidationPrice = liqPrice > 0 ? fmt(Math.round(liqPrice)) : '不適用';
+    let weightedEntry = 0, totalMultContracts = 0;
+    positions.forEach(p => {
+      const spec = PRODUCTS[p.product];
+      const mc = spec.multiplier * p.contracts;
+      const dir = p.direction === 'long' ? 1 : -1;
+      weightedEntry += p.price * mc * dir;
+      totalMultContracts += mc * dir;
+    });
+
+    if (totalMultContracts !== 0) {
+      // 追繳價：權益 < 維持保證金
+      const maxLossMC = capital - totalMaintMargin;
+      if (maxLossMC > 0) {
+        const mcPrice = (weightedEntry - maxLossMC) / totalMultContracts;
+        marginCallPrice = mcPrice > 0 ? fmt(Math.round(mcPrice)) : '不適用';
+      } else {
+        marginCallPrice = '資金不足';
       }
-    } else {
-      liquidationPrice = '資金不足';
+
+      // 強制平倉價：權益 < 25% 原始保證金
+      const forceLiqThreshold = totalMargin * 0.30;
+      const maxLossLiq = capital - forceLiqThreshold;
+      if (maxLossLiq > 0) {
+        const liqPrice = (weightedEntry - maxLossLiq) / totalMultContracts;
+        liquidationPrice = liqPrice > 0 ? fmt(Math.round(liqPrice)) : '不適用';
+      } else {
+        liquidationPrice = '資金不足';
+      }
     }
   }
 
@@ -653,6 +670,7 @@ function recalculate() {
   document.getElementById('totalNotional').textContent = totalNotional > 0 ? `$${fmt(totalNotional)}` : '-';
   document.getElementById('leverage').textContent = leverage > 0 ? `${leverage.toFixed(1)}x` : '-';
   document.getElementById('dailyCost').textContent = dailyCost > 0 ? `$${fmt(Math.round(dailyCost))}` : '-';
+  document.getElementById('marginCallPrice').textContent = marginCallPrice;
   document.getElementById('liquidationPrice').textContent = liquidationPrice;
 }
 
