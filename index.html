@@ -315,6 +315,15 @@
         <div class="label">斷頭價（權益 &lt; 原始保證金 30%）</div>
         <div class="value negative" id="liquidationPrice">-</div>
       </div>
+      <div class="result-item">
+        <div class="label">底艙持倉數（無槓桿等同0050）</div>
+        <div class="value neutral" id="baselinePositions">-</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;justify-content:center;">
+          <input type="number" id="indexCloseInput" step="0.01" style="width:90px;padding:4px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.8rem;text-align:center;">
+          <button class="toggle-btn" onclick="refetchIndex()" style="font-size:0.7rem;padding:2px 6px;">重抓</button>
+        </div>
+        <div class="label" id="baselineSource" style="margin-top:4px;font-size:0.7rem;"><span id="baselineIndexVal">-</span></div>
+      </div>
     </div>
   </div>
 
@@ -445,27 +454,80 @@
           <tr>
             <td>大台 TX</td>
             <td>NT$200</td>
-            <td><input type="number" id="margin_TX" value="184000" onchange="updateMargin('TX')"></td>
-            <td><input type="number" id="maintMargin_TX" value="141000" onchange="updateMargin('TX')"></td>
+            <td><input type="number" id="margin_TX" value="184000" oninput="updateMarginTX()"></td>
+            <td><input type="number" id="maintMargin_TX" value="141000" oninput="updateMarginTX()"></td>
           </tr>
           <tr>
-            <td>小台 MTX</td>
+            <td>小台 MTX（= 大台 / 4）</td>
             <td>NT$50</td>
-            <td><input type="number" id="margin_MTX" value="46000" onchange="updateMargin('MTX')"></td>
-            <td><input type="number" id="maintMargin_MTX" value="35250" onchange="updateMargin('MTX')"></td>
+            <td><input type="number" id="margin_MTX" value="46000" disabled></td>
+            <td><input type="number" id="maintMargin_MTX" value="35250" disabled></td>
           </tr>
           <tr>
-            <td>微台 MXF</td>
+            <td>微台 MXF（= 大台 / 20）</td>
             <td>NT$5</td>
-            <td><input type="number" id="margin_MXF" value="4600" onchange="updateMargin('MXF')"></td>
-            <td><input type="number" id="maintMargin_MXF" value="3525" onchange="updateMargin('MXF')"></td>
+            <td><input type="number" id="margin_MXF" value="9200" disabled></td>
+            <td><input type="number" id="maintMargin_MXF" value="7050" disabled></td>
           </tr>
         </tbody>
       </table>
-      <a class="taifex-link" href="https://www.taifex.com.tw/cht/5/margingLevelCurrent" target="_blank" rel="noopener">
+      <a class="taifex-link" href="https://www.taifex.com.tw/cht/5/indexMarging" target="_blank" rel="noopener">
         查看期交所最新保證金 →
       </a>
       <div class="last-updated" id="marginLastUpdated"></div>
+    </div>
+  </div>
+
+  <!-- 回檔歷史 -->
+  <div class="card">
+    <div class="card-title">
+      <span>回檔歷史參考</span>
+      <button class="toggle-btn" onclick="document.getElementById('pullbackHistory').classList.toggle('open')">展開 / 收合</button>
+    </div>
+    <div class="collapsible open" id="pullbackHistory">
+      <table class="margin-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>事件</th>
+            <th>指數</th>
+            <th>高點</th>
+            <th>低點</th>
+            <th>回檔</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="3">2026/4/14</td><td rowspan="3">Now</td><td>標普500</td><td>7,002</td><td>6,775</td><td>3.2%</td></tr>
+          <tr><td>納指</td><td>26,349</td><td>24,239</td><td>8.0%</td></tr>
+          <tr><td>台指期</td><td>33,152</td><td>31,222</td><td>5.8%</td></tr>
+
+          <tr><td rowspan="3">2025/4/2</td><td rowspan="3">川普關稅</td><td>標普500</td><td>6,147</td><td>4,835</td><td>21.3%</td></tr>
+          <tr><td>納指</td><td>22,319</td><td>16,405</td><td>26.3%</td></tr>
+          <tr><td>台指期</td><td>23,993</td><td>17,015</td><td>29.1%</td></tr>
+
+          <tr><td rowspan="3">2024/8/1</td><td rowspan="3">日圓套利平倉</td><td>標普500</td><td>5,669</td><td>5,119</td><td>9.7%</td></tr>
+          <tr><td>納指</td><td>20,983</td><td>17,351</td><td>17.3%</td></tr>
+          <tr><td>台指期</td><td>24,449</td><td>18,827</td><td>23.0%</td></tr>
+
+          <tr><td rowspan="3">2022/1/10</td><td rowspan="3">激進升息 / 俄烏戰爭</td><td>標普500</td><td>4,818</td><td>3,491</td><td>27.5%</td></tr>
+          <tr><td>納指</td><td>16,767</td><td>10,484</td><td>37.5%</td></tr>
+          <tr><td>台指期</td><td>18,650</td><td>12,651</td><td style="color:var(--red);font-weight:700;">32.2%</td></tr>
+
+          <tr><td rowspan="3">2021/4/26</td><td rowspan="3">通膨預期與升息擔憂</td><td>標普500</td><td>4,545</td><td>4,287</td><td>5.7%</td></tr>
+          <tr><td>納指</td><td>13,900</td><td>12,207</td><td>12.2%</td></tr>
+          <tr><td>台指期</td><td>17,703</td><td>15,030</td><td>15.1%</td></tr>
+
+          <tr><td rowspan="3">2020/4/1</td><td rowspan="3">疫情熔斷</td><td>標普500</td><td>3,393</td><td>2,191</td><td>35.4%</td></tr>
+          <tr><td>納指</td><td>9,763</td><td>6,628</td><td>32.1%</td></tr>
+          <tr><td>台指期</td><td>15,290</td><td>10,238</td><td style="color:var(--red);font-weight:700;">32.2%</td></tr>
+
+          <tr><td rowspan="3">2018/8/27</td><td rowspan="3">美中貿易戰升溫</td><td>標普500</td><td>2,940</td><td>2,346</td><td>20.2%</td></tr>
+          <tr><td>納指</td><td>7,728</td><td>5,820</td><td>24.7%</td></tr>
+          <tr><td>台指期</td><td>11,134</td><td>9,330</td><td>16.2%</td></tr>
+
+          <tr><td>2018/2/5</td><td>波動率地獄</td><td>標普500</td><td>2,872</td><td>2,532</td><td>11.8%</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -476,6 +538,10 @@
 <script>
 // ── Storage key ──
 const STORAGE_KEY = 'futures_calc_v1';
+
+// ── 0050 底艙基準（需由抓取或手動輸入提供） ──
+let currentIndexClose = 0;
+let indexSourceLabel = '尚未輸入';
 
 // ── Default product specs ──
 const DEFAULT_PRODUCTS = {
@@ -498,9 +564,10 @@ function saveState() {
     positions,
     products: PRODUCTS,
     marginLastUpdated: document.getElementById('marginLastUpdated').textContent,
+    indexClose: currentIndexClose,
+    indexSourceLabel,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  showToast();
 }
 
 function loadState() {
@@ -515,14 +582,15 @@ function loadState() {
     if (state.positions) positions = state.positions;
     if (state.products) {
       PRODUCTS = state.products;
-      // Restore margin inputs
-      ['TX', 'MTX', 'MXF'].forEach(k => {
-        document.getElementById('margin_' + k).value = PRODUCTS[k].margin;
-        document.getElementById('maintMargin_' + k).value = PRODUCTS[k].maintMargin;
-      });
+      document.getElementById('margin_TX').value = PRODUCTS.TX.margin;
+      document.getElementById('maintMargin_TX').value = PRODUCTS.TX.maintMargin;
     }
     if (state.marginLastUpdated) {
       document.getElementById('marginLastUpdated').textContent = state.marginLastUpdated;
+    }
+    if (state.indexClose) {
+      currentIndexClose = parseFloat(state.indexClose);
+      indexSourceLabel = state.indexSourceLabel || '本地儲存';
     }
   } catch (e) {
     console.warn('Failed to load saved state', e);
@@ -547,6 +615,29 @@ function updateMargin(product) {
   PRODUCTS[product].maintMargin = maintMargin;
   const now = new Date().toLocaleString('zh-TW');
   document.getElementById('marginLastUpdated').textContent = '上次更新：' + now;
+  recalculate();
+  saveState();
+}
+
+function updateMarginTX() {
+  const margin = parseInt(document.getElementById('margin_TX').value) || 0;
+  const maintMargin = parseInt(document.getElementById('maintMargin_TX').value) || 0;
+  PRODUCTS.TX.margin = margin;
+  PRODUCTS.TX.maintMargin = maintMargin;
+
+  PRODUCTS.MTX.margin = Math.round(margin / 4);
+  PRODUCTS.MTX.maintMargin = Math.round(maintMargin / 4);
+  PRODUCTS.MXF.margin = Math.round(margin / 20);
+  PRODUCTS.MXF.maintMargin = Math.round(maintMargin / 20);
+
+  document.getElementById('margin_MTX').value = PRODUCTS.MTX.margin;
+  document.getElementById('maintMargin_MTX').value = PRODUCTS.MTX.maintMargin;
+  document.getElementById('margin_MXF').value = PRODUCTS.MXF.margin;
+  document.getElementById('maintMargin_MXF').value = PRODUCTS.MXF.maintMargin;
+
+  const now = new Date().toLocaleString('zh-TW');
+  document.getElementById('marginLastUpdated').textContent = '上次更新：' + now;
+  renderPositions();
   recalculate();
   saveState();
 }
@@ -672,6 +763,79 @@ function recalculate() {
   document.getElementById('dailyCost').textContent = dailyCost > 0 ? `$${fmt(Math.round(dailyCost))}` : '-';
   document.getElementById('marginCallPrice').textContent = marginCallPrice;
   document.getElementById('liquidationPrice').textContent = liquidationPrice;
+
+  const baseline = capital > 0 && currentIndexClose > 0 ? capital / 50 / currentIndexClose : 0;
+  document.getElementById('baselinePositions').textContent = baseline > 0 ? `${baseline.toFixed(2)} 口` : '-';
+  const inp = document.getElementById('indexCloseInput');
+  if (document.activeElement !== inp) inp.value = currentIndexClose > 0 ? currentIndexClose : '';
+  document.getElementById('baselineIndexVal').textContent = `來源：${indexSourceLabel}`;
+}
+
+function onIndexCloseInput() {
+  const v = parseFloat(document.getElementById('indexCloseInput').value);
+  if (v > 0) {
+    currentIndexClose = v;
+    indexSourceLabel = '手動輸入';
+    recalculate();
+    saveState();
+  }
+}
+
+function refetchIndex() {
+  indexSourceLabel = '抓取中…';
+  document.getElementById('baselineIndexVal').textContent = `來源：${indexSourceLabel}`;
+  fetchIndexClose();
+}
+
+function fetchIndexClose() {
+  const yahoo = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=5d';
+  const cbName = '__yahooCb_' + Date.now();
+  const scriptUrl = 'https://api.allorigins.win/get?callback=' + cbName + '&url=' + encodeURIComponent(yahoo);
+
+  const cleanup = () => {
+    const s = document.getElementById(cbName);
+    if (s) s.remove();
+    delete window[cbName];
+  };
+
+  const timeout = setTimeout(() => {
+    console.warn('JSONP timeout');
+    cleanup();
+    if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
+    recalculate();
+  }, 8000);
+
+  window[cbName] = (data) => {
+    clearTimeout(timeout);
+    cleanup();
+    try {
+      const parsed = JSON.parse(data.contents);
+      const meta = parsed?.chart?.result?.[0]?.meta;
+      const price = meta?.regularMarketPrice ?? meta?.previousClose;
+      if (!price) throw new Error('no price');
+      currentIndexClose = price;
+      const ts = meta?.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : new Date();
+      indexSourceLabel = `Yahoo ${ts.toLocaleDateString('zh-TW')}`;
+      recalculate();
+      saveState();
+    } catch (e) {
+      console.warn('解析失敗', e);
+      if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
+      recalculate();
+    }
+  };
+
+  const s = document.createElement('script');
+  s.id = cbName;
+  s.src = scriptUrl;
+  s.onerror = () => {
+    clearTimeout(timeout);
+    cleanup();
+    console.warn('JSONP 載入失敗');
+    if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
+    recalculate();
+  };
+  document.head.appendChild(s);
 }
 
 function simulate() {
@@ -730,13 +894,24 @@ function debounceSave() {
 }
 
 document.querySelectorAll('#capital, #commissionPerContract, #taxRate, #simPrice').forEach(el => {
-  el.addEventListener('input', () => { recalculate(); debounceSave(); });
+  el.addEventListener('input', () => {
+    recalculate();
+    if (document.getElementById('simResult').style.display === 'flex' && positions.length > 0 && parseFloat(document.getElementById('simPrice').value)) {
+      simulate();
+    }
+    debounceSave();
+  });
 });
 
 // ── Init ──
 loadState();
+updateMarginTX();
 renderPositions();
 recalculate();
+document.getElementById('indexCloseInput').addEventListener('input', onIndexCloseInput);
+if (currentIndexClose <= 0) {
+  fetchIndexClose();
+}
 </script>
 </body>
 </html>
