@@ -465,8 +465,8 @@
             <td><input type="number" id="maintMargin_MTX" value="35250" disabled></td>
           </tr>
           <tr>
-            <td>微台 MXF（= 大台 / 20）</td>
-            <td>NT$5</td>
+            <td>微台 MXF（= 大台 / 20，= 小台 / 5）</td>
+            <td>NT$10</td>
             <td><input type="number" id="margin_MXF" value="9200" disabled></td>
             <td><input type="number" id="maintMargin_MXF" value="7050" disabled></td>
           </tr>
@@ -548,7 +548,7 @@ let indexSourceLabel = '尚未輸入';
 const DEFAULT_PRODUCTS = {
   TX:  { name: '大台 TX',  multiplier: 200, margin: 184000, maintMargin: 141000 },
   MTX: { name: '小台 MTX', multiplier: 50,  margin: 46000,  maintMargin: 35250 },
-  MXF: { name: '微台 MXF', multiplier: 5,   margin: 4600,   maintMargin: 3525 },
+  MXF: { name: '微台 MXF', multiplier: 10,  margin: 9200,   maintMargin: 7050 },
 };
 
 let PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
