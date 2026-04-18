@@ -105,11 +105,16 @@
     padding: 8px 10px;
   }
 
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .positions-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 8px;
     font-size: 0.9rem;
+    min-width: 500px;
   }
   .positions-table th {
     text-align: left;
@@ -305,16 +310,17 @@
         <div class="value warning" id="leverage">-</div>
       </div>
       <div class="result-item">
-        <div class="label">單日手續費+稅（來回）</div>
-        <div class="value" id="dailyCost">-</div>
-      </div>
-      <div class="result-item">
-        <div class="label">追繳價（權益 &lt; 維持保證金 70%）</div>
+        <div class="label">追繳價（權益 &lt; 原始保證金 70%）</div>
         <div class="value warning" id="marginCallPrice">-</div>
       </div>
       <div class="result-item">
         <div class="label">斷頭價（權益 &lt; 原始保證金 30%）</div>
         <div class="value negative" id="liquidationPrice">-</div>
+      </div>
+      <div class="result-item">
+        <div class="label">建議槓桿口數（小台）</div>
+        <div class="value warning" id="suggestedContracts">-</div>
+        <div class="label" style="margin-top:4px;font-size:0.65rem;color:var(--dim);">(總資金−0.7×保證金) / (成本價×0.35) / 50</div>
       </div>
       <div class="result-item">
         <div class="label">底艙持倉數（無槓桿等同0050）</div>
@@ -331,6 +337,7 @@
   <!-- 目前持倉 -->
   <div class="card">
     <div class="card-title">目前持倉</div>
+    <div class="table-scroll">
     <table class="positions-table">
       <thead>
         <tr>
@@ -347,6 +354,7 @@
         <tr><td colspan="7" style="text-align:center;color:var(--dim);padding:20px;">尚無部位，請在上方新增</td></tr>
       </tbody>
     </table>
+    </div>
   </div>
 
   <!-- 新增部位 -->
@@ -583,6 +591,10 @@ function loadState() {
     if (state.positions) positions = state.positions;
     if (state.products) {
       PRODUCTS = state.products;
+      ['TX', 'MTX', 'MXF'].forEach(k => {
+        PRODUCTS[k].multiplier = DEFAULT_PRODUCTS[k].multiplier;
+        PRODUCTS[k].name = DEFAULT_PRODUCTS[k].name;
+      });
       document.getElementById('margin_TX').value = PRODUCTS.TX.margin;
       document.getElementById('maintMargin_TX').value = PRODUCTS.TX.maintMargin;
     }
@@ -734,8 +746,9 @@ function recalculate() {
     });
 
     if (totalMultContracts !== 0) {
-      // 追繳價：權益 < 維持保證金
-      const maxLossMC = capital - totalMaintMargin;
+      // 追繳價：權益 < 原始保證金 70%
+      const mcThreshold = totalMargin * 0.70;
+      const maxLossMC = capital - mcThreshold;
       if (maxLossMC > 0) {
         const mcPrice = (weightedEntry - maxLossMC) / totalMultContracts;
         marginCallPrice = mcPrice > 0 ? fmt(Math.round(mcPrice)) : '不適用';
@@ -761,12 +774,29 @@ function recalculate() {
   freeEl.className = `value ${freeMargin >= 0 ? 'positive' : 'negative'}`;
   document.getElementById('totalNotional').textContent = totalNotional > 0 ? `$${fmt(totalNotional)}` : '-';
   document.getElementById('leverage').textContent = leverage > 0 ? `${leverage.toFixed(1)}x` : '-';
-  document.getElementById('dailyCost').textContent = dailyCost > 0 ? `$${fmt(Math.round(dailyCost))}` : '-';
   document.getElementById('marginCallPrice').textContent = marginCallPrice;
   document.getElementById('liquidationPrice').textContent = liquidationPrice;
 
+  // 建議槓桿口數 = (總資金 - 0.7*保證金需求) / (成本價 * 0.35) / 50
+  let suggested = '-';
+  if (positions.length > 0 && totalNotional > 0) {
+    let totalEntryMultContracts = 0, totalMC = 0;
+    positions.forEach(p => {
+      const spec = PRODUCTS[p.product];
+      totalMC += spec.multiplier * p.contracts;
+      totalEntryMultContracts += p.price * spec.multiplier * p.contracts;
+    });
+    const avgEntry = totalEntryMultContracts / totalMC;
+    const numerator = capital - 0.7 * totalMargin;
+    const denominator = avgEntry * 0.35 * 50;
+    if (numerator > 0 && denominator > 0) {
+      suggested = (numerator / denominator).toFixed(2) + ' 口';
+    }
+  }
+  document.getElementById('suggestedContracts').textContent = suggested;
+
   const baseline = capital > 0 && currentIndexClose > 0 ? capital / 50 / currentIndexClose : 0;
-  document.getElementById('baselinePositions').textContent = baseline > 0 ? `${baseline.toFixed(2)} 口` : '-';
+  document.getElementById('baselinePositions').innerHTML = baseline > 0 ? `${baseline.toFixed(2)} 口小台<br>${(baseline * 5).toFixed(1)} 口微台` : '-';
   const inp = document.getElementById('indexCloseInput');
   if (document.activeElement !== inp) inp.value = currentIndexClose > 0 ? currentIndexClose : '';
   document.getElementById('baselineIndexVal').textContent = `來源：${indexSourceLabel}`;
