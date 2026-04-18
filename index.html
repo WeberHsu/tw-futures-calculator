@@ -319,17 +319,14 @@
       </div>
       <div class="result-item">
         <div class="label">建議槓桿口數（小台）</div>
-        <div class="value warning" id="suggestedContracts">-</div>
-        <div class="label" style="margin-top:4px;font-size:0.65rem;color:var(--dim);">(總資金−0.7×保證金) / (成本價×0.35) / 50</div>
+        <div class="value warning" id="suggestedCeiling">-</div>
+        <div class="label" style="margin-top:2px;font-size:0.65rem;color:var(--dim);">頂天：跌13.2%不斷頭（美伊戰爭）</div>
+        <div class="value positive" id="suggestedSafe" style="margin-top:8px;">-</div>
+        <div class="label" style="margin-top:2px;font-size:0.65rem;color:var(--dim);">保險：跌32.2%不斷頭（激進升息/疫情）</div>
       </div>
       <div class="result-item">
         <div class="label">底艙持倉數（無槓桿等同0050）</div>
         <div class="value neutral" id="baselinePositions">-</div>
-        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;justify-content:center;">
-          <input type="number" id="indexCloseInput" step="0.01" style="width:90px;padding:4px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.8rem;text-align:center;">
-          <button class="toggle-btn" onclick="refetchIndex()" style="font-size:0.7rem;padding:2px 6px;">重抓</button>
-        </div>
-        <div class="label" id="baselineSource" style="margin-top:4px;font-size:0.7rem;"><span id="baselineIndexVal">-</span></div>
       </div>
     </div>
   </div>
@@ -393,9 +390,23 @@
     <div class="card-title">帳戶資金</div>
     <div class="form-row">
       <div class="form-group">
-        <label>總資金 (NT$)</label>
-        <input type="number" id="capital" placeholder="例：500000" value="500000">
+        <label>初始資金 (NT$)</label>
+        <input type="number" id="initCapital" placeholder="例：500000" value="500000">
       </div>
+      <div class="form-group">
+        <label>當前點數 <button class="toggle-btn" onclick="fetchCurrentPrice()" style="font-size:0.7rem;padding:1px 6px;margin-left:4px;">自動抓取</button></label>
+        <input type="number" id="currentPrice" placeholder="例：21000">
+      </div>
+      <div class="form-group">
+        <label>當前盈虧</label>
+        <div id="currentPnl" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:1rem;">-</div>
+      </div>
+      <div class="form-group">
+        <label>總資金</label>
+        <div id="totalCapitalDisplay" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:1rem;font-weight:700;">-</div>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label>手續費/口 (NT$)</label>
         <input type="number" id="commissionPerContract" placeholder="單邊" value="20">
@@ -506,9 +517,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td rowspan="3">2026/4/14</td><td rowspan="3">Now</td><td>標普500</td><td>7,002</td><td>6,775</td><td>3.2%</td></tr>
-          <tr><td>納指</td><td>26,349</td><td>24,239</td><td>8.0%</td></tr>
-          <tr><td>台指期</td><td>33,152</td><td>31,222</td><td>5.8%</td></tr>
+          <tr><td rowspan="3">2026/4/14</td><td rowspan="3">美伊戰爭</td><td>標普500</td><td>7,002</td><td>6,316</td><td>9.8%</td></tr>
+          <tr><td>納指</td><td>26,349</td><td>20,690</td><td>21.5%</td></tr>
+          <tr><td>台指期</td><td>35,878</td><td>31,126</td><td style="color:#ffa726;font-weight:700;">13.2%</td></tr>
 
           <tr><td rowspan="3">2025/4/2</td><td rowspan="3">川普關稅</td><td>標普500</td><td>6,147</td><td>4,835</td><td>21.3%</td></tr>
           <tr><td>納指</td><td>22,319</td><td>16,405</td><td>26.3%</td></tr>
@@ -520,7 +531,7 @@
 
           <tr><td rowspan="3">2022/1/10</td><td rowspan="3">激進升息 / 俄烏戰爭</td><td>標普500</td><td>4,818</td><td>3,491</td><td>27.5%</td></tr>
           <tr><td>納指</td><td>16,767</td><td>10,484</td><td>37.5%</td></tr>
-          <tr><td>台指期</td><td>18,650</td><td>12,651</td><td style="color:var(--red);font-weight:700;">32.2%</td></tr>
+          <tr><td>台指期</td><td>18,650</td><td>12,651</td><td style="color:var(--green);font-weight:700;">32.2%</td></tr>
 
           <tr><td rowspan="3">2021/4/26</td><td rowspan="3">通膨預期與升息擔憂</td><td>標普500</td><td>4,545</td><td>4,287</td><td>5.7%</td></tr>
           <tr><td>納指</td><td>13,900</td><td>12,207</td><td>12.2%</td></tr>
@@ -528,7 +539,7 @@
 
           <tr><td rowspan="3">2020/4/1</td><td rowspan="3">疫情熔斷</td><td>標普500</td><td>3,393</td><td>2,191</td><td>35.4%</td></tr>
           <tr><td>納指</td><td>9,763</td><td>6,628</td><td>32.1%</td></tr>
-          <tr><td>台指期</td><td>15,290</td><td>10,238</td><td style="color:var(--red);font-weight:700;">32.2%</td></tr>
+          <tr><td>台指期</td><td>15,290</td><td>10,238</td><td style="color:var(--green);font-weight:700;">32.2%</td></tr>
 
           <tr><td rowspan="3">2018/8/27</td><td rowspan="3">美中貿易戰升溫</td><td>標普500</td><td>2,940</td><td>2,346</td><td>20.2%</td></tr>
           <tr><td>納指</td><td>7,728</td><td>5,820</td><td>24.7%</td></tr>
@@ -548,9 +559,6 @@
 // ── Storage key ──
 const STORAGE_KEY = 'futures_calc_v1';
 
-// ── 0050 底艙基準（需由抓取或手動輸入提供） ──
-let currentIndexClose = 0;
-let indexSourceLabel = '尚未輸入';
 
 // ── Default product specs ──
 const DEFAULT_PRODUCTS = {
@@ -566,15 +574,14 @@ let currentDirection = 'long';
 // ── LocalStorage ──
 function saveState() {
   const state = {
-    capital: document.getElementById('capital').value,
+    initCapital: document.getElementById('initCapital').value,
+    currentPrice: document.getElementById('currentPrice').value,
     commissionPerContract: document.getElementById('commissionPerContract').value,
     taxRate: document.getElementById('taxRate').value,
     simPrice: document.getElementById('simPrice').value,
     positions,
     products: PRODUCTS,
     marginLastUpdated: document.getElementById('marginLastUpdated').textContent,
-    indexClose: currentIndexClose,
-    indexSourceLabel,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -584,7 +591,8 @@ function loadState() {
   if (!raw) return;
   try {
     const state = JSON.parse(raw);
-    if (state.capital) document.getElementById('capital').value = state.capital;
+    if (state.initCapital) document.getElementById('initCapital').value = state.initCapital;
+    if (state.currentPrice) document.getElementById('currentPrice').value = state.currentPrice;
     if (state.commissionPerContract) document.getElementById('commissionPerContract').value = state.commissionPerContract;
     if (state.taxRate) document.getElementById('taxRate').value = state.taxRate;
     if (state.simPrice) document.getElementById('simPrice').value = state.simPrice;
@@ -600,10 +608,6 @@ function loadState() {
     }
     if (state.marginLastUpdated) {
       document.getElementById('marginLastUpdated').textContent = state.marginLastUpdated;
-    }
-    if (state.indexClose) {
-      currentIndexClose = parseFloat(state.indexClose);
-      indexSourceLabel = state.indexSourceLabel || '本地儲存';
     }
   } catch (e) {
     console.warn('Failed to load saved state', e);
@@ -712,9 +716,29 @@ function renderPositions() {
 
 // ── Calculations ──
 function recalculate() {
-  const capital = parseFloat(document.getElementById('capital').value) || 0;
+  const initCapital = parseFloat(document.getElementById('initCapital').value) || 0;
+  const curPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
   const commPerContract = parseFloat(document.getElementById('commissionPerContract').value) || 0;
   const taxRate = parseFloat(document.getElementById('taxRate').value);
+
+  // 當前盈虧
+  let unrealizedPnl = 0;
+  if (curPrice > 0 && positions.length > 0) {
+    positions.forEach(p => {
+      const spec = PRODUCTS[p.product];
+      const dir = p.direction === 'long' ? 1 : -1;
+      unrealizedPnl += (curPrice - p.price) * spec.multiplier * p.contracts * dir;
+    });
+  }
+  const capital = initCapital + unrealizedPnl;
+
+  const pnlEl = document.getElementById('currentPnl');
+  pnlEl.textContent = positions.length > 0 && curPrice > 0 ? `$${fmt(Math.round(unrealizedPnl))}` : '-';
+  pnlEl.style.color = unrealizedPnl >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const capEl = document.getElementById('totalCapitalDisplay');
+  capEl.textContent = capital > 0 ? `$${fmt(Math.round(capital))}` : '-';
+  capEl.style.color = capital >= initCapital ? 'var(--green)' : 'var(--red)';
 
   let totalMargin = 0, totalMaintMargin = 0, totalNotional = 0, totalContracts = 0;
 
@@ -777,8 +801,8 @@ function recalculate() {
   document.getElementById('marginCallPrice').textContent = marginCallPrice;
   document.getElementById('liquidationPrice').textContent = liquidationPrice;
 
-  // 建議槓桿口數 = (總資金 - 0.7*保證金需求) / (成本價 * 0.35) / 50
-  let suggested = '-';
+  // 建議槓桿口數
+  let ceiling = '-', safe = '-';
   if (positions.length > 0 && totalNotional > 0) {
     let totalEntryMultContracts = 0, totalMC = 0;
     positions.forEach(p => {
@@ -788,85 +812,48 @@ function recalculate() {
     });
     const avgEntry = totalEntryMultContracts / totalMC;
     const numerator = capital - 0.7 * totalMargin;
-    const denominator = avgEntry * 0.35 * 50;
-    if (numerator > 0 && denominator > 0) {
-      suggested = (numerator / denominator).toFixed(2) + ' 口';
+    if (numerator > 0 && avgEntry > 0) {
+      ceiling = (numerator / (avgEntry * 0.132 * 50)).toFixed(2) + ' 口';
+      safe = (numerator / (avgEntry * 0.322 * 50)).toFixed(2) + ' 口';
     }
   }
-  document.getElementById('suggestedContracts').textContent = suggested;
+  document.getElementById('suggestedCeiling').textContent = ceiling;
+  document.getElementById('suggestedSafe').textContent = safe;
 
-  const baseline = capital > 0 && currentIndexClose > 0 ? capital / 50 / currentIndexClose : 0;
+  const baseline = capital > 0 && curPrice > 0 ? capital / 50 / curPrice : 0;
   document.getElementById('baselinePositions').innerHTML = baseline > 0 ? `${baseline.toFixed(2)} 口小台<br>${(baseline * 5).toFixed(1)} 口微台` : '-';
-  const inp = document.getElementById('indexCloseInput');
-  if (document.activeElement !== inp) inp.value = currentIndexClose > 0 ? currentIndexClose : '';
-  document.getElementById('baselineIndexVal').textContent = `來源：${indexSourceLabel}`;
 }
 
-function onIndexCloseInput() {
-  const v = parseFloat(document.getElementById('indexCloseInput').value);
-  if (v > 0) {
-    currentIndexClose = v;
-    indexSourceLabel = '手動輸入';
-    recalculate();
-    saveState();
-  }
-}
 
-function refetchIndex() {
-  indexSourceLabel = '抓取中…';
-  document.getElementById('baselineIndexVal').textContent = `來源：${indexSourceLabel}`;
-  fetchIndexClose();
-}
-
-function fetchIndexClose() {
-  const yahoo = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=5d';
-  const cbName = '__yahooCb_' + Date.now();
-  const scriptUrl = 'https://api.allorigins.win/get?callback=' + cbName + '&url=' + encodeURIComponent(yahoo);
-
-  const cleanup = () => {
-    const s = document.getElementById(cbName);
-    if (s) s.remove();
-    delete window[cbName];
-  };
-
-  const timeout = setTimeout(() => {
-    console.warn('JSONP timeout');
-    cleanup();
-    if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
-    recalculate();
-  }, 8000);
-
-  window[cbName] = (data) => {
-    clearTimeout(timeout);
-    cleanup();
+async function fetchCurrentPrice() {
+  const inp = document.getElementById('currentPrice');
+  const orig = inp.placeholder;
+  inp.placeholder = '抓取中…';
+  const proxies = [
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
+    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  ];
+  const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=1d';
+  for (const wrap of proxies) {
     try {
-      const parsed = JSON.parse(data.contents);
-      const meta = parsed?.chart?.result?.[0]?.meta;
+      const res = await fetch(wrap(target), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
       const price = meta?.regularMarketPrice ?? meta?.previousClose;
       if (!price) throw new Error('no price');
-      currentIndexClose = price;
-      const ts = meta?.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : new Date();
-      indexSourceLabel = `Yahoo ${ts.toLocaleDateString('zh-TW')}`;
+      inp.value = Math.round(price);
+      inp.placeholder = orig;
       recalculate();
-      saveState();
+      debounceSave();
+      return;
     } catch (e) {
-      console.warn('解析失敗', e);
-      if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
-      recalculate();
+      console.warn('抓取失敗', e);
     }
-  };
-
-  const s = document.createElement('script');
-  s.id = cbName;
-  s.src = scriptUrl;
-  s.onerror = () => {
-    clearTimeout(timeout);
-    cleanup();
-    console.warn('JSONP 載入失敗');
-    if (currentIndexClose <= 0) indexSourceLabel = '抓取失敗，請手動輸入';
-    recalculate();
-  };
-  document.head.appendChild(s);
+  }
+  inp.placeholder = orig;
+  alert('自動抓取失敗，請手動輸入');
 }
 
 function simulate() {
@@ -874,7 +861,7 @@ function simulate() {
   if (!simPrice) { alert('請輸入假設指數'); return; }
   if (positions.length === 0) { alert('請先新增部位'); return; }
 
-  const capital = parseFloat(document.getElementById('capital').value) || 0;
+  const initCapital = parseFloat(document.getElementById('initCapital').value) || 0;
   const commPerContract = parseFloat(document.getElementById('commissionPerContract').value) || 0;
   const taxRate = parseFloat(document.getElementById('taxRate').value);
 
@@ -893,8 +880,8 @@ function simulate() {
   const totalTax = (openNotional + closeNotional) * taxRate;
   const totalCost = totalComm + totalTax;
   const netPnl = totalPnl - totalCost;
-  const returnRate = capital > 0 ? (netPnl / capital) * 100 : 0;
-  const balance = capital + netPnl;
+  const returnRate = initCapital > 0 ? (netPnl / initCapital) * 100 : 0;
+  const balance = initCapital + netPnl;
 
   document.getElementById('simResult').style.display = 'flex';
 
@@ -912,7 +899,7 @@ function simulate() {
 
   const balEl = document.getElementById('simBalance');
   balEl.textContent = `$${fmt(Math.round(balance))}`;
-  balEl.className = `value ${balance >= capital ? 'positive' : 'negative'}`;
+  balEl.className = `value ${balance >= initCapital ? 'positive' : 'negative'}`;
 
   saveState();
 }
@@ -924,7 +911,7 @@ function debounceSave() {
   saveTimer = setTimeout(saveState, 500);
 }
 
-document.querySelectorAll('#capital, #commissionPerContract, #taxRate, #simPrice').forEach(el => {
+document.querySelectorAll('#initCapital, #currentPrice, #commissionPerContract, #taxRate, #simPrice').forEach(el => {
   el.addEventListener('input', () => {
     recalculate();
     if (document.getElementById('simResult').style.display === 'flex' && positions.length > 0 && parseFloat(document.getElementById('simPrice').value)) {
@@ -939,12 +926,6 @@ loadState();
 updateMarginTX();
 renderPositions();
 recalculate();
-document.getElementById('indexCloseInput').addEventListener('input', onIndexCloseInput);
-if (currentIndexClose <= 0) {
-  indexSourceLabel = '背景抓取中…';
-  recalculate();
-  fetchIndexClose();
-}
 </script>
 </body>
 </html>
