@@ -67,6 +67,19 @@
     font-weight: 400;
   }
   .card-title .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .card-title .update-btn {
+    font-size: 0.8rem;
+    color: var(--bg);
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .card-title .update-btn:hover { opacity: 0.85; }
+  .card-title .update-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .form-row {
     display: flex;
@@ -291,7 +304,10 @@
 
   <!-- 帳戶總覽 -->
   <div class="card">
-    <div class="card-title">帳戶總覽</div>
+    <div class="card-title">
+      <span>帳戶總覽</span>
+      <button class="update-btn" id="updateValuesBtn" onclick="updateValues()">↻ 更新數值</button>
+    </div>
     <div class="results-grid">
       <div class="result-item">
         <div class="label">總保證金需求</div>
@@ -394,7 +410,7 @@
         <input type="number" id="initCapital" placeholder="例：500000" value="500000">
       </div>
       <div class="form-group">
-        <label>當前點數 <button class="toggle-btn" onclick="fetchCurrentPrice()" style="font-size:0.7rem;padding:1px 6px;margin-left:4px;">自動抓取</button></label>
+        <label>當前點數</label>
         <input type="number" id="currentPrice" placeholder="例：21000">
       </div>
       <div class="form-group">
@@ -825,17 +841,15 @@ function recalculate() {
 }
 
 
-async function fetchCurrentPrice() {
-  const inp = document.getElementById('currentPrice');
-  const orig = inp.placeholder;
-  inp.placeholder = '抓取中…';
-  const proxies = [
-    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
-    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
-  ];
+const CORS_PROXIES = [
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+];
+
+async function fetchPrice() {
   const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=1d';
-  for (const wrap of proxies) {
+  for (const wrap of CORS_PROXIES) {
     try {
       const res = await fetch(wrap(target), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -843,17 +857,66 @@ async function fetchCurrentPrice() {
       const meta = data?.chart?.result?.[0]?.meta;
       const price = meta?.regularMarketPrice ?? meta?.previousClose;
       if (!price) throw new Error('no price');
-      inp.value = Math.round(price);
-      inp.placeholder = orig;
-      recalculate();
-      debounceSave();
-      return;
+      return Math.round(price);
     } catch (e) {
-      console.warn('抓取失敗', e);
+      console.warn('price fetch failed', e);
     }
   }
-  inp.placeholder = orig;
-  alert('自動抓取失敗，請手動輸入');
+  return null;
+}
+
+async function fetchMargins() {
+  const target = 'https://www.taifex.com.tw/cht/5/indexMarging';
+  for (const wrap of CORS_PROXIES) {
+    try {
+      const res = await fetch(wrap(target), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      // TAIFEX columns: 商品別 | 結算保證金 | 維持保證金 | 原始保證金
+      for (const row of doc.querySelectorAll('tr')) {
+        const first = row.cells?.[0]?.textContent?.trim() || '';
+        if (first === '臺股期貨') {
+          const maint = parseInt(row.cells[2]?.textContent.replace(/[^\d]/g, ''), 10);
+          const initial = parseInt(row.cells[3]?.textContent.replace(/[^\d]/g, ''), 10);
+          if (maint > 0 && initial > maint) return { margin: initial, maintMargin: maint };
+        }
+      }
+      throw new Error('TX row not found');
+    } catch (e) {
+      console.warn('margin fetch failed', e);
+    }
+  }
+  return null;
+}
+
+async function updateValues() {
+  const btn = document.getElementById('updateValuesBtn');
+  const orig = btn.textContent;
+  btn.textContent = '更新中…';
+  btn.disabled = true;
+
+  const [price, margins] = await Promise.all([fetchPrice(), fetchMargins()]);
+
+  if (price !== null) {
+    document.getElementById('currentPrice').value = price;
+  }
+  if (margins) {
+    document.getElementById('margin_TX').value = margins.margin;
+    document.getElementById('maintMargin_TX').value = margins.maintMargin;
+    updateMarginTX();
+  } else {
+    recalculate();
+  }
+  debounceSave();
+
+  btn.textContent = orig;
+  btn.disabled = false;
+
+  const failed = [];
+  if (price === null) failed.push('加權指數');
+  if (!margins) failed.push('大台保證金');
+  if (failed.length) alert('抓取失敗：' + failed.join('、') + '，請稍後再試');
 }
 
 function simulate() {
