@@ -221,12 +221,43 @@
   .result-item .value-input:focus { border-bottom-color: var(--accent); }
   .current-price-row {
     margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: stretch;
   }
   .current-price-item {
     width: fit-content;
     min-width: 220px;
     padding: 10px 20px;
   }
+  .ma-group {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .ma-item {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 6px 10px;
+    text-align: center;
+    min-width: 72px;
+    flex: 1;
+  }
+  .ma-item .ma-label {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-bottom: 2px;
+  }
+  .ma-item .ma-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ma-item .ma-value.above { color: var(--green); }
+  .ma-item .ma-value.below { color: var(--red); }
   .positive { color: var(--green); }
   .negative { color: var(--red); }
   .neutral { color: var(--accent); }
@@ -340,6 +371,14 @@
       <div class="result-item current-price-item">
         <div class="label">當前點數（加權指數）</div>
         <input type="number" id="currentPrice" class="value-input" placeholder="例：21000">
+      </div>
+      <div class="ma-group">
+        <div class="ma-item"><div class="ma-label">MA5</div><div class="ma-value" id="ma5">-</div></div>
+        <div class="ma-item"><div class="ma-label">MA10</div><div class="ma-value" id="ma10">-</div></div>
+        <div class="ma-item"><div class="ma-label">月線 MA20</div><div class="ma-value" id="ma20">-</div></div>
+        <div class="ma-item"><div class="ma-label">季線 MA60</div><div class="ma-value" id="ma60">-</div></div>
+        <div class="ma-item"><div class="ma-label">半年線 MA120</div><div class="ma-value" id="ma120">-</div></div>
+        <div class="ma-item"><div class="ma-label">年線 MA240</div><div class="ma-value" id="ma240">-</div></div>
       </div>
     </div>
     <div class="results-grid">
@@ -616,6 +655,7 @@ const DEFAULT_PRODUCTS = {
 let PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
 let positions = [];
 let currentDirection = 'long';
+let lastMAs = null;
 
 // ── LocalStorage ──
 function saveState() {
@@ -628,6 +668,7 @@ function saveState() {
     positions,
     products: PRODUCTS,
     marginLastUpdated: document.getElementById('marginLastUpdated').textContent,
+    mas: lastMAs,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -654,6 +695,11 @@ function loadState() {
     }
     if (state.marginLastUpdated) {
       document.getElementById('marginLastUpdated').textContent = state.marginLastUpdated;
+    }
+    if (state.mas) {
+      lastMAs = state.mas;
+      const price = parseFloat(document.getElementById('currentPrice').value) || 0;
+      renderMAs(price, state.mas);
     }
   } catch (e) {
     console.warn('Failed to load saved state', e);
@@ -877,17 +923,30 @@ const CORS_PROXIES = [
   u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
 ];
 
+const MA_PERIODS = [5, 10, 20, 60, 120, 240];
+
 async function fetchPrice() {
-  const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=1d';
+  const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=2y';
   for (const wrap of CORS_PROXIES) {
     try {
       const res = await fetch(wrap(target), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      const price = meta?.regularMarketPrice ?? meta?.previousClose;
+      const result = data?.chart?.result?.[0];
+      const meta = result?.meta;
+      const closes = (result?.indicators?.quote?.[0]?.close || []).filter(v => typeof v === 'number');
+      const price = meta?.regularMarketPrice ?? meta?.previousClose ?? closes[closes.length - 1];
       if (!price) throw new Error('no price');
-      return Math.round(price);
+      const ma = {};
+      MA_PERIODS.forEach(p => {
+        if (closes.length >= p) {
+          const sum = closes.slice(-p).reduce((a, b) => a + b, 0);
+          ma['ma' + p] = Math.round(sum / p);
+        } else {
+          ma['ma' + p] = null;
+        }
+      });
+      return { price: Math.round(price), ma };
     } catch (e) {
       console.warn('price fetch failed', e);
     }
@@ -926,10 +985,12 @@ async function updateValues() {
   btn.textContent = '更新中…';
   btn.disabled = true;
 
-  const [price, margins] = await Promise.all([fetchPrice(), fetchMargins()]);
+  const [priceData, margins] = await Promise.all([fetchPrice(), fetchMargins()]);
 
-  if (price !== null) {
-    document.getElementById('currentPrice').value = price;
+  if (priceData) {
+    document.getElementById('currentPrice').value = priceData.price;
+    lastMAs = priceData.ma;
+    renderMAs(priceData.price, priceData.ma);
   }
   if (margins) {
     document.getElementById('margin_TX').value = margins.margin;
@@ -944,9 +1005,23 @@ async function updateValues() {
   btn.disabled = false;
 
   const failed = [];
-  if (price === null) failed.push('加權指數');
+  if (!priceData) failed.push('加權指數');
   if (!margins) failed.push('大台保證金');
   if (failed.length) alert('抓取失敗：' + failed.join('、') + '，請稍後再試');
+}
+
+function renderMAs(price, ma) {
+  MA_PERIODS.forEach(p => {
+    const el = document.getElementById('ma' + p);
+    const v = ma?.['ma' + p];
+    if (v != null) {
+      el.textContent = fmt(v);
+      el.className = 'ma-value ' + (price >= v ? 'above' : 'below');
+    } else {
+      el.textContent = '-';
+      el.className = 'ma-value';
+    }
+  });
 }
 
 function simulate() {
@@ -1007,6 +1082,9 @@ function debounceSave() {
 document.querySelectorAll('#initCapital, #currentPrice, #commissionPerContract, #taxRate, #simPrice').forEach(el => {
   el.addEventListener('input', () => {
     recalculate();
+    if (el.id === 'currentPrice' && lastMAs) {
+      renderMAs(parseFloat(el.value) || 0, lastMAs);
+    }
     if (document.getElementById('simResult').style.display === 'flex' && positions.length > 0 && parseFloat(document.getElementById('simPrice').value)) {
       simulate();
     }
